@@ -1,57 +1,54 @@
 require_relative "card.rb"
+require "byebug"
 
 class Board
 
-    def initialize(width, length)
-        @width  = width
+    def initialize(height, length)
+        @height  = height
         @length = length
-        area = @width * @length
+        area = @height * @length
         error_msg = "Please enter max area of 52 with at least one even dimension"
-        raise RuntimeError.new error_msg if area.odd? && area > 52
-        @grid = Array.new(width) { Array.new(length) }
+        raise RuntimeError.new error_msg if area.odd? || area > 52
+        @grid = Array.new(@height) { Array.new(@length) }
         populate!
     end
 
     def populate!
-        #Based on a "deck"
-        #We need to generate a list of n unique cards,
-        #n == @grid (length * height) / 2,
-        #then for each card, fill in random positions in @grid twice.
-        deck = ("A".."Z").to_a.sample(@width * @length / 2)
-
-        #Rather than rolling the dice and hoping to hit a blank each time,
-        #this will introduce a lot of un-useful iterations, towards the end,
-        #we will have a higher chance of rolling an occupied spot, until we roll
-        #an unoccupied spot.
-        deck.each do |card_val| #Per unique card, fill 2 random spots in @grid
-            2.times do 
-                rand_row = rand(0...@width)
-                rand_col = rand(0...@length)
-                #BUG BELOW - FIXED --------------##
-                #We defined Card#== to check equivalency based on value.
-                #Here we check if a space in grid is empty: nil at first. 
-                #However once it's filled, Card == nil will cause this to
-                #Check for #value in both sides, and there is no nil#value method.
-                #Accounted for this using duck typing, by adding to our method Card#==:
-                #return false if !other_card.respond_to?(:value) - basically if
-                #other card does not have a #value getter method.
-                #Checked using pry#wtf to locate below line calling it!
-                until @grid[rand_row][rand_col] == nil # Card == nil
-                    rand_row = rand(0...@width)
-                    rand_col = rand(0...@length)
-                end
-                @grid[rand_row][rand_col] = Card.new(card_val)
-            end
+        deck = ("A".."Z").to_a.sample(@height * @length / 2)
+        deck += deck
+        deck.shuffle!
+        (0...deck.length).each do |deck_idx|
+            grid_row = deck_idx / @length
+            grid_col = deck_idx % @length
+            # debugger
+            @grid[grid_row][grid_col] = Card.new(deck[deck_idx])
         end
-        
 
     end
 
-    def random_position
-        rand_row = rand(0...@width)
-        rand_col = rand(0...@length)
-        [rand_row, rand_col]
+    def render
+        #TopRow: offset + col indices joined on space
+        toprow = "  " + (0...@length).to_a.join(" ")
+        puts toprow
+        #EachRow: row index + card_val joined on space
+        @grid.each_with_index do |row, row_idx|
+            grid_row = row.join(" ")
+            puts "#{row_idx} #{grid_row}"
+        end
     end
 
+    def won?
+        @grid.all? do |row|
+            row.all?(&:face_up?)
+        end
+    end
 
+    def reveal(guessed_pos)
+        @grid[guessed_pos].reveal
+    end
+
+    def [](position)
+        row, col = position
+        @grid[row][col]
+    end
 end
