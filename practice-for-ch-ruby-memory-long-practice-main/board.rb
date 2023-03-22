@@ -27,6 +27,8 @@ class Board
     end
 
     def render
+        puts
+        puts "REALLY FUN MEMORY GAME"
         #TopRow: offset + col indices joined on space
         toprow = "  " + (0...@length).to_a.join(" ")
         puts toprow
@@ -44,7 +46,12 @@ class Board
     end
 
     def reveal(guessed_pos)
-        @grid[guessed_pos].reveal
+        self[guessed_pos].reveal
+        self[guessed_pos].value
+    end
+
+    def hide(guessed_pos)
+        self[guessed_pos].hide
     end
 
     def [](position)
